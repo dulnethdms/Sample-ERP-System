@@ -1,0 +1,17 @@
+<?php
+declare(strict_types=1);
+namespace App\Controllers;
+use App\Core\Controller;
+use App\Core\Request;
+use App\Core\Csrf;
+use App\Repositories\UserRepository;
+use App\Policies\Permission;
+use App\Middleware\AuthMiddleware;
+use App\Services\AuditService;
+final class UserController extends Controller {private UserRepository $repo;public function __construct(){ $this->repo=new UserRepository();}
+public function index():void{Permission::require('users.view');$search=(string)Request::query('search','');$page=max(1,(int)Request::query('page',1));$limit=20;$this->view('users/index',['users'=>$this->repo->all($search,$limit,($page-1)*$limit),'total'=>$this->repo->count($search),'page'=>$page,'search'=>$search]);}
+public function create():void{Permission::require('users.create');$this->view('users/form',['user'=>null,'roles'=>$this->repo->roles()]);}
+public function store():void{Permission::require('users.create');Csrf::validate(Request::input('_csrf'));$d=Request::input();$errors=[];if(trim((string)($d['name']??''))==='')$errors['name']='Name is required.';if(!filter_var($d['email']??'',FILTER_VALIDATE_EMAIL))$errors['email']='Valid email is required.';if(strlen((string)($d['password']??''))<8)$errors['password']='Password must be at least 8 characters.';if($this->repo->findByEmail((string)$d['email']))$errors['email']='Email already exists.';if($errors){$this->view('users/form',['user'=>$d,'roles'=>$this->repo->roles(),'errors'=>$errors]);return;}$id=$this->repo->create(['name'=>trim($d['name']),'email'=>strtolower(trim($d['email'])),'password_hash'=>password_hash($d['password'],PASSWORD_DEFAULT),'status'=>$d['status']??'active']);$this->repo->setRoles($id,$d['roles']??[]);(new AuditService())->log('created','users','User',$id,null,['name'=>$d['name'],'email'=>$d['email'],'status'=>$d['status']??'active']);flash('success','User created successfully.');$this->redirect('/users');}
+public function edit(array $params):void{Permission::require('users.edit');$this->view('users/form',['user'=>$this->repo->find((int)$params['id']),'roles'=>$this->repo->roles()]);}
+public function update(array $params):void{Permission::require('users.edit');Csrf::validate(Request::input('_csrf'));$d=Request::input();$errors=[];if(trim((string)($d['name']??''))==='')$errors['name']='Name is required.';if(!filter_var($d['email']??'',FILTER_VALIDATE_EMAIL))$errors['email']='Valid email is required.';if($errors){$d['id']=(int)$params['id'];$this->view('users/form',['user'=>$d,'roles'=>$this->repo->roles(),'errors'=>$errors]);return;}$id=(int)$params['id'];$before=$this->repo->find($id);$this->repo->update($id,['name'=>trim($d['name']),'email'=>strtolower(trim($d['email'])),'status'=>$d['status']??'active']+(!empty($d['password'])?['password_hash'=>password_hash($d['password'],PASSWORD_DEFAULT)]:[]));$this->repo->setRoles($id,$d['roles']??[]);(new AuditService())->log('updated','users','User',$id,$before,['name'=>$d['name'],'email'=>$d['email'],'status'=>$d['status']??'active']);flash('success','User updated successfully.');$this->redirect('/users');}
+public function delete(array $params):void{Permission::require('users.delete');Csrf::validate(Request::input('_csrf'));if((int)$params['id']===(int)\App\Core\Auth::id())exit('You cannot delete your own account.');$id=(int)$params['id'];$before=$this->repo->find($id);$this->repo->softDelete($id);(new AuditService())->log('deleted','users','User',$id,$before,null);flash('success','User deleted successfully.');$this->redirect('/users');}}

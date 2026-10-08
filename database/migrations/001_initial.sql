@@ -1,0 +1,2 @@
+-- Initial migration. For a clean deployment, execute database/schema.sql followed by database/seeders/seed.sql.
+-- Future migrations should be numbered sequentially and applied without destructive DROP statements.

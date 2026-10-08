@@ -1,0 +1,14 @@
+USE erp;
+INSERT INTO roles(name,description) VALUES ('Super Admin','Full system access'),('Administrator','Administrative access'),('Manager','Management access'),('HR Manager','HR management'),('Sales Manager','Sales management'),('Purchase Manager','Purchasing management'),('Inventory Manager','Inventory management'),('Accountant','Accounting access'),('HR Officer','HR operations'),('Sales Officer','Sales operations'),('Purchase Officer','Purchasing operations'),('Warehouse Officer','Warehouse operations'),('Employee','Employee self-service');
+INSERT INTO permissions(name) VALUES ('users.view'),('users.create'),('users.edit'),('users.delete'),('products.view'),('products.create'),('products.edit'),('products.delete'),('sales.view'),('sales.create'),('sales.edit'),('sales.delete'),('sales.approve'),('purchases.view'),('purchases.create'),('purchases.edit'),('purchases.delete'),('purchases.approve'),('inventory.view'),('inventory.adjust'),('inventory.transfer'),('reports.view'),('reports.export'),('settings.manage');
+INSERT INTO role_permissions(role_id,permission_id) SELECT r.id,p.id FROM roles r CROSS JOIN permissions p WHERE r.name='Super Admin';
+INSERT INTO users(name,email,password_hash,status) VALUES ('System Administrator','admin@example.com','$2y$12$JjoZBNCHLfDK2/oL14h5.eP//eWU5ibKCDR9ffIFQ1VWVDf4QgqK6','active');
+INSERT INTO user_roles(user_id,role_id) SELECT u.id,r.id FROM users u JOIN roles r ON r.name='Super Admin' WHERE u.email='admin@example.com';
+INSERT INTO companies(name,email,phone) VALUES ('Demo Company (Pvt) Ltd','admin@demo.local','0110000000');
+INSERT INTO branches(company_id,name,address) SELECT id,'Head Office','Colombo, Sri Lanka' FROM companies LIMIT 1;
+INSERT INTO departments(branch_id,name) SELECT id,'Administration' FROM branches UNION ALL SELECT id,'Sales' FROM branches UNION ALL SELECT id,'Finance' FROM branches UNION ALL SELECT id,'Human Resources' FROM branches;
+INSERT INTO units(name,symbol) VALUES ('Piece','pcs'),('Kilogram','kg'),('Litre','L');
+INSERT INTO tax_rates(name,rate) VALUES ('No Tax',0);
+INSERT INTO categories(name,description) VALUES ('General','Default product category');
+INSERT INTO expense_categories(name) VALUES ('General Expense'),('Utilities'),('Travel');
+INSERT INTO leave_types(name,annual_days) VALUES ('Annual Leave',14),('Casual Leave',7),('Sick Leave',14);
